@@ -20,6 +20,7 @@ import static org.smartregister.AllConstants.LANGUAGE_PREFERENCE_KEY;
 import static org.smartregister.AllConstants.PIONEER_USER;
 import static org.smartregister.AllConstants.SERVER_TIMEZONE;
 import static org.smartregister.AllConstants.USER_LOCALITY_ID_PREFIX;
+import static org.smartregister.AllConstants.USER_LOCALITY_NAME_PREFIX;
 import static org.smartregister.util.Log.logError;
 import static org.smartregister.util.Log.logInfo;
 
@@ -111,6 +112,20 @@ public class AllSharedPreferences {
     public String fetchUserLocalityId(String username) {
         if (username != null) {
             return preferences.getString(USER_LOCALITY_ID_PREFIX + username, null);
+        }
+        return null;
+    }
+
+    public void saveUserLocalityName(String username, String localityName) {
+        if (username != null) {
+            preferences.edit().putString(USER_LOCALITY_NAME_PREFIX, localityName)
+                    .commit();
+        }
+    }
+
+    public String fetchUserLocalityName(String username) {
+        if (username != null) {
+            return preferences.getString(USER_LOCALITY_NAME_PREFIX, "");
         }
         return null;
     }
