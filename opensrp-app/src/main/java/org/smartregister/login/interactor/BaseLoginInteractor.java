@@ -13,6 +13,7 @@ import org.smartregister.P2POptions;
 import org.smartregister.R;
 import org.smartregister.domain.LoginResponse;
 import org.smartregister.domain.TimeStatus;
+import org.smartregister.domain.jsonmapping.util.TeamLocation;
 import org.smartregister.event.Listener;
 import org.smartregister.job.P2pServiceJob;
 import org.smartregister.job.PullUniqueIdsServiceJob;
@@ -26,6 +27,7 @@ import org.smartregister.view.activity.DrishtiApplication;
 import org.smartregister.view.contract.BaseLoginContract;
 
 import java.lang.ref.WeakReference;
+import java.util.Set;
 import java.util.TimeZone;
 
 import timber.log.Timber;
@@ -126,6 +128,18 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
                         if (loginResponse == LoginResponse.SUCCESS) {
                             String username=loginResponse.payload()!=null && loginResponse.payload().user != null && StringUtils.isNotBlank(loginResponse.payload().user.getUsername())
                                     ? loginResponse.payload().user.getUsername() : userName;
+
+                            //Capture the location of the user and store it in shared
+                            Set<TeamLocation> userLocaltion;
+                            TeamLocation currentUserLocation;
+                            if (loginResponse.payload() != null){
+                                userLocaltion = loginResponse.payload().team.locations;
+
+                                TeamLocation[] tlocationArray = userLocaltion.toArray(new TeamLocation[1]);
+                                currentUserLocation = tlocationArray[0];
+                                CoreLibrary.getInstance().context().allSharedPreferences().saveUserLocalityName(username, currentUserLocation.name);
+                            }
+
                             if (getUserService().isUserInPioneerGroup(username)) {
                                 TimeStatus timeStatus = getUserService().validateDeviceTime(
                                         loginResponse.payload(), AllConstants.MAX_SERVER_TIME_DIFFERENCE
