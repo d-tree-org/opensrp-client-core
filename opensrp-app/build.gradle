@@ -160,7 +160,7 @@ def githubProperties = new Properties()
 githubProperties.load(new FileInputStream(rootProject.file("github.properties")))
 
 def getVersionName = { ->
-    return "1.8.30-DTREE-SNAPSHOT" // Library version
+    return "1.8.31-DTREE-SNAPSHOT" // Library version
 }
 
 def getArtificatId = { ->
@@ -176,7 +176,7 @@ publishing {
              ** Replace GITHUB_USERID with your/organisation Github userID
              ** and REPOSITORY with the repository name on GitHub
              */
-            url = uri("https://maven.pkg.github.com/issyzac/opensrp-client-core")
+            url = uri("https://maven.pkg.github.com/d-tree-org/opensrp-client-core")
             credentials {
                 /** Create github.properties in root project folder file with
                  ** gpr.usr=GITHUB_USER_ID & gpr.key=PERSONAL_ACCESS_TOKEN
