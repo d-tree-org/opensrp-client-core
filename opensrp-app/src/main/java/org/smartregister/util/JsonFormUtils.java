@@ -490,12 +490,8 @@ public class JsonFormUtils {
             e.addObs(new Obs(CONCEPT, dataType, entityIdVal, entityParentVal, vall, humanReadableValues, null,
                     formSubmissionField));
         } else if (StringUtils.isBlank(entityVal)) {
-            if (AllConstants.CHECK_BOX.equals(widgetType)) {
-                if (jsonObject.has(AllConstants.TEXT)) {
-                    vall.add(getString(jsonObject, AllConstants.TEXT));
-                } else {
-                    vall.add(obsValue);
-                }
+            if (AllConstants.CHECK_BOX.equals(widgetType) && jsonObject.has(AllConstants.TEXT)) {
+                vall.add(getString(jsonObject, AllConstants.TEXT));
             } else {
                 vall.add(obsValue);
             }
