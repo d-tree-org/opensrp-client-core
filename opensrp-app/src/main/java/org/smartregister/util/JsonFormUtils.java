@@ -70,10 +70,11 @@ public class JsonFormUtils {
 
     public static final String COMBINE_CHECKBOX_OPTION_VALUES = "combine_checkbox_option_values";
 
-    public static final SimpleDateFormat dd_MM_yyyy = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+    public static final SimpleDateFormat dd_MM_yyyy = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", getLocale());
     //public static Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").create();
     //2007-03-31T04:00:00.000Z
-    public static Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    // A fix for date formatting in visit events the original formatting was "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+    public static Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
             .registerTypeAdapter(DateTime.class, new DateTimeTypeConverter()).create();
 
     public static Client createBaseClient(JSONArray fields, FormTag formTag, String entityId) {
@@ -1214,6 +1215,10 @@ public class JsonFormUtils {
             Timber.e(e);
         }
         return null;
+    }
+
+    private static Locale getLocale() {
+        return Locale.getDefault();
     }
 
 }
