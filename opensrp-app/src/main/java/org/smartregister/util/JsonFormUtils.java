@@ -443,6 +443,7 @@ public class JsonFormUtils {
         }
 
         String entityVal = getString(jsonObject, OPENMRS_ENTITY);
+        String widgetType = getString(jsonObject, AllConstants.TYPE);
 
         if (entityVal != null && entityVal.equals(entity)) {
             String entityIdVal = getString(jsonObject, OPENMRS_ENTITY_ID);
@@ -451,7 +452,6 @@ public class JsonFormUtils {
             List<Object> humanReadableValues = new ArrayList<>();
 
             JSONArray values = getJSONArray(jsonObject, VALUES);
-            String widgetType = getString(jsonObject, AllConstants.TYPE);
             if (AllConstants.CHECK_BOX.equals(widgetType)) {
                 entityIdVal = getString(jsonObject, AllConstants.PARENT_ENTITY_ID);
                 entityParentVal = getString(jsonObject, AllConstants.PARENT_ENTITY_ID);
@@ -490,7 +490,11 @@ public class JsonFormUtils {
             e.addObs(new Obs(CONCEPT, dataType, entityIdVal, entityParentVal, vall, humanReadableValues, null,
                     formSubmissionField));
         } else if (StringUtils.isBlank(entityVal)) {
-            vall.add(obsValue);
+            if (AllConstants.CHECK_BOX.equals(widgetType) && jsonObject.has(AllConstants.TEXT)) {
+                vall.add(getString(jsonObject, AllConstants.TEXT));
+            } else {
+                vall.add(obsValue);
+            }
 
             e.addObs(new Obs("formsubmissionField", dataType, formSubmissionField, "", vall, new ArrayList<>(), null,
                     formSubmissionField));
