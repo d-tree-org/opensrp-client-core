@@ -1189,7 +1189,6 @@ public class EventClientRepository extends BaseRepository {
                     + " = ? ", new String[]{baseEntityId});
             if (cursor.moveToNext()) {
                 String jsonString = cursor.getString(0);
-                jsonString = jsonString.replaceAll("'", "");
                 return convert(jsonString, Client.class);
             }
         } catch (Exception e) {
