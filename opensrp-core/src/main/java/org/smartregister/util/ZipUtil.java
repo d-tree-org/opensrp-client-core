@@ -20,7 +20,6 @@ public class ZipUtil {
     public ZipUtil(String zipFile, String zipLocation) {
         this.zipFile = zipFile;
         this.zipLocation = zipLocation;
-        checkDir(" ");
     }
 
     public void unzip() {
@@ -29,16 +28,22 @@ public class ZipUtil {
             ZipInputStream zin = new ZipInputStream(fin);
             ZipEntry ze = null;
             while ((ze = zin.getNextEntry()) != null) {
-                Log.v("ZipService: ", "Unzipping " + ze.getName());
-                if (ze.isDirectory()) {
-                    checkDir(ze.getName());
-                } else {
-                    FileOutputStream fout = new FileOutputStream(this.zipLocation + ze.getName());
-                    for (int c = zin.read(); c != -1; c = zin.read()) {
-                        fout.write(c);
+                File f = new File(this.zipLocation + ze.getName());
+                String canonicalPath = f.getCanonicalPath();
+                if (!canonicalPath.startsWith(this.zipLocation)) {
+                    throw new Exception(String.format("Found Zip Path Traversal Vulnerability with %s", canonicalPath));
+                }else{
+                    Log.v("ZipService: ", "Unzipping " + ze.getName());
+                    if (ze.isDirectory()) {
+                        checkDir(f);
+                    } else {
+                        FileOutputStream fout = new FileOutputStream(this.zipLocation + ze.getName());
+                        for (int c = zin.read(); c != -1; c = zin.read()) {
+                            fout.write(c);
+                        }
+                        zin.closeEntry();
+                        fout.close();
                     }
-                    zin.closeEntry();
-                    fout.close();
                 }
             }
             zin.close();
@@ -49,10 +54,9 @@ public class ZipUtil {
         }
     }
 
-    private void checkDir(String location) {
-        File f = new File(this.zipLocation + location);
-        if (!f.isDirectory()) {
-            f.mkdirs();
+    private void checkDir(File file) {
+        if (!file.isDirectory()) {
+            file.mkdirs();
         }
     }
 
