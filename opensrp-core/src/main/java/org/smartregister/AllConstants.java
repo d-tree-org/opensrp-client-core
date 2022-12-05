@@ -19,6 +19,8 @@ public class AllConstants {
     public static final String SETTINGS = "settings";
     public static final String SERVER_VERSION = "serverVersion";
 
+    public static final String USER_LOCALITY_NAME_PREFIX = "userLocName-";
+
     public static final String DETAILS = "details";
     public static final String PLAN_IDENTIFIER = "planIdentifier";
     public static final String LOCATION_ID = "locationId";

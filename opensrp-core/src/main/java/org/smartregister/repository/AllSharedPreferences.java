@@ -15,6 +15,8 @@ import java.net.URL;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.smartregister.AllConstants.USER_LOCALITY_NAME_PREFIX;
+
 public class AllSharedPreferences {
     public static final String ANM_IDENTIFIER_PREFERENCE_KEY = "anmIdentifier";
     public static final String ANM_IDENTIFIER_SET_PREFERENCE_KEY = "anmIdentifierSet";
@@ -112,6 +114,20 @@ public class AllSharedPreferences {
     public String fetchUserLocalityId(String username) {
         if (username != null) {
             return preferences.getString(AllConstants.USER_LOCALITY_ID_PREFIX + username, null);
+        }
+        return null;
+    }
+
+    public void saveUserLocalityName(String username, String localityName) {
+        if (username != null) {
+            preferences.edit().putString(USER_LOCALITY_NAME_PREFIX, localityName)
+                    .commit();
+        }
+    }
+
+    public String fetchUserLocalityName(String username) {
+        if (username != null) {
+            return preferences.getString(USER_LOCALITY_NAME_PREFIX, "");
         }
         return null;
     }

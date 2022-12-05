@@ -609,14 +609,8 @@ public class JsonFormUtils {
                     formSubmissionField));
         } else if (StringUtils.isBlank(entityVal)) {
 
-            vall.add(obsValue);
-
-            if (AllConstants.CHECK_BOX.equals(widgetType)) {
-                if (jsonObject.has(AllConstants.TEXT)) {
-                    vall.add(getString(jsonObject, AllConstants.TEXT));
-                } else {
-                    vall.add(obsValue);
-                }
+            if (AllConstants.CHECK_BOX.equals(widgetType) && jsonObject.has(AllConstants.TEXT)) {
+                vall.add(getString(jsonObject, AllConstants.TEXT));
             } else {
                 vall.add(obsValue);
             }

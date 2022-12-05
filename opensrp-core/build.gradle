@@ -122,21 +122,14 @@ android {
     }
 }
 
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-
 tasks.withType(Test) {
     jacoco.includeNoLocationClasses = true
     jacoco.excludes = ['jdk.internal.*']
-    testLogging {
-        // Enables easier debugging of tests in Github Actions CI
-        events TestLogEvent.FAILED
-        exceptionFormat TestExceptionFormat.FULL
-        showExceptions true
-        showCauses true
-        showStackTraces true
-    }
     maxHeapSize = "4g"
+}
+
+task prepareKotlinBuildScriptModel {
+
 }
 
 def filesToCopy = copySpec {
