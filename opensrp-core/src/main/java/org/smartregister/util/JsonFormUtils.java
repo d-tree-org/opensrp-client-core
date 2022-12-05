@@ -82,10 +82,15 @@ public class JsonFormUtils {
     public static final String SAVE_OBS_AS_ARRAY = "save_obs_as_array";
     public static final String SAVE_ALL_CHECKBOX_OBS_AS_ARRAY = "save_all_checkbox_obs_as_array";
 
-    public static final SimpleDateFormat dd_MM_yyyy = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+    public static final SimpleDateFormat dd_MM_yyyy = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", getLocale());
 
-    public static Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    // A fix for date formatting in visit events the original formatting was "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+    public static Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
             .registerTypeAdapter(DateTime.class, new DateTimeTypeConverter()).create();
+
+    private static Locale getLocale() {
+        return Locale.getDefault();
+    }
 
     public static Client createBaseClient(JSONArray fields, FormTag formTag, String entityId) {
 
@@ -605,6 +610,16 @@ public class JsonFormUtils {
         } else if (StringUtils.isBlank(entityVal)) {
 
             vall.add(obsValue);
+
+            if (AllConstants.CHECK_BOX.equals(widgetType)) {
+                if (jsonObject.has(AllConstants.TEXT)) {
+                    vall.add(getString(jsonObject, AllConstants.TEXT));
+                } else {
+                    vall.add(obsValue);
+                }
+            } else {
+                vall.add(obsValue);
+            }
 
             if ((AllConstants.NATIVE_RADIO.equals(widgetType) || AllConstants.EXTENDED_RADIO_BUTTON.equals(widgetType)) &&
                     jsonObject.has(AllConstants.OPTIONS)) {
