@@ -217,7 +217,7 @@ public class DateUtil {
                     / TimeUnit.MILLISECONDS.convert(365, TimeUnit.DAYS));
             int months = (int) Math.floor((float) (timeDiff -
                     TimeUnit.MILLISECONDS.convert(years * 365, TimeUnit.DAYS)) /
-                    TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS));
+                    TimeUnit.MILLISECONDS.convert(31, TimeUnit.DAYS));
 
             if (months >= 12) {
                 months = 0;
