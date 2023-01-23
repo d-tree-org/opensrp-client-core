@@ -91,7 +91,7 @@ public class SecuredActivityTest extends BaseRobolectricUnitTest {
     public void tearDown() throws Exception {
         // Revert to the previous state where the user is logged out
         Session session = ReflectionHelpers.getField(CoreLibrary.getInstance().context().userService(), "session");
-        session.setPassword(null);
+        session.setPassword("");
         session.start(0);
         resetCoreLibrary();
     }
