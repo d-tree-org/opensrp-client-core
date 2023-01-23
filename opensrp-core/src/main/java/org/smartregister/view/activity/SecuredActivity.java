@@ -65,7 +65,7 @@ public abstract class SecuredActivity extends MultiLanguageActivity implements P
         logoutListener = data -> finish();
         ON_LOGOUT.addListener(logoutListener);
 
-        if (context().IsUserLoggedOut()) {
+        if (context().v1IsUserLoggedOut()) {
             DrishtiApplication application = (DrishtiApplication) getApplication();
             application.logoutCurrentUser();
             return;
@@ -83,7 +83,7 @@ public abstract class SecuredActivity extends MultiLanguageActivity implements P
     @Override
     protected void onResume() {
         super.onResume();
-        if (context().IsUserLoggedOut()) {
+        if (context().v1IsUserLoggedOut()) {
             DrishtiApplication application = (DrishtiApplication) getApplication();
             application.logoutCurrentUser();
             return;
