@@ -9,6 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.smartregister.AllConstants;
 import org.smartregister.CoreLibrary;
 import org.smartregister.util.Log;
+import static org.smartregister.AllConstants.ENCRYPTED_PASSWORD_PREFIX;
+import static org.smartregister.AllConstants.ENCRYPTED_GROUP_ID_PREFIX;
+import static org.smartregister.AllConstants.FORCE_REMOTE_LOGIN;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -63,8 +66,23 @@ public class AllSharedPreferences {
         return preferences.getBoolean(new StringBuffer(AllConstants.FORCE_REMOTE_LOGIN).append('_').append(username).toString(), true);
     }
 
+    public boolean v1FetchForceRemoteLogin() {
+        return preferences.getBoolean(FORCE_REMOTE_LOGIN, true);
+    }
+
+    public String v1FetchEncryptedPassword(String username) {
+        if (username != null) {
+            return preferences.getString(ENCRYPTED_PASSWORD_PREFIX + username, null);
+        }
+        return null;
+    }
+
     public void saveForceRemoteLogin(boolean forceRemoteLogin, String username) {
         preferences.edit().putBoolean(new StringBuffer(AllConstants.FORCE_REMOTE_LOGIN).append('_').append(username).toString(), forceRemoteLogin).commit();
+    }
+
+    public void saveForceRemoteLogin(boolean forceRemoteLogin) {
+        preferences.edit().putBoolean(FORCE_REMOTE_LOGIN, forceRemoteLogin).commit();
     }
 
     public String fetchServerTimeZone() {
@@ -421,6 +439,18 @@ public class AllSharedPreferences {
 
     public String getUserId(String userName) {
         return StringUtils.isNotBlank(userName) ? preferences.getString(AllConstants.USER_ID_PREFIX + userName, null) : "";
+    }
+
+    public void saveEncryptedPassword(String username, String password) {
+        if (username != null) {
+            preferences.edit().putString(ENCRYPTED_PASSWORD_PREFIX + username, password).commit();
+        }
+    }
+
+    public void saveEncryptedGroupId(String username, String groupId) {
+        if (username != null) {
+            preferences.edit().putString(ENCRYPTED_GROUP_ID_PREFIX + username, groupId).commit();
+        }
     }
 }
 
