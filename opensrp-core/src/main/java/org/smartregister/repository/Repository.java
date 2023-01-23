@@ -144,17 +144,17 @@ public class Repository extends SQLiteOpenHelper {
     }
 
     public SQLiteDatabase getReadableDatabase() {
-        if (password() == null) {
+        if (v1Password() == null) {
             throw new RuntimeException("Password has not been set!");
         }
-        return getReadableDatabase(password());
+        return getReadableDatabase(v1Password());
     }
 
     public SQLiteDatabase getWritableDatabase() {
-        if (password() == null) {
+        if (v1Password() == null) {
             throw new RuntimeException("Password has not been set!");
         }
-        return getWritableDatabase(password());
+        return getWritableDatabase(v1Password());
     }
 
     @VisibleForTesting
@@ -162,6 +162,14 @@ public class Repository extends SQLiteOpenHelper {
         SQLiteDatabase database = SQLiteDatabase
                 .openDatabase(databasePath.getPath(), password, null,
                         SQLiteDatabase.OPEN_READONLY, hook, new OpenSRPDatabaseErrorHandler());
+        database.close();
+        return true;
+    }
+
+    private boolean v1IsDatabaseWritable(String password) {
+        SQLiteDatabase database = SQLiteDatabase
+                .openDatabase(databasePath.getPath(), password, null,
+                        SQLiteDatabase.OPEN_READONLY, hook);
         database.close();
         return true;
     }
@@ -192,8 +200,38 @@ public class Repository extends SQLiteOpenHelper {
         }
     }
 
+    public boolean v1CanUseThisPassword(String password) {
+        try {
+            return v1IsDatabaseWritable(password);
+        } catch (SQLiteException e) {
+            Timber.e(e);
+            if (e.getMessage().contains("attempt to write a readonly database")) {
+                File journal = new File(databasePath.getPath() + "-journal");
+                Timber.w("Journal exists: %s", journal.exists());
+                if (journal.exists() && journal.canWrite()) {
+                    Timber.w("Journal space: %s, its not possible to recover transactions!!! deleting Journal ", journal.getTotalSpace());
+                    try {
+                        new FileOutputStream(journal).write(new byte[]{});
+                        return v1IsDatabaseWritable(password);
+                    } catch (FileNotFoundException e1) {
+                        Timber.e(e1);
+                    } catch (IOException e1) {
+                        Timber.e(e1);
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private byte[] password() {
         return DrishtiApplication.getInstance().getPassword();
+    }
+
+    private String v1Password() {
+        return DrishtiApplication.getInstance().v1GetPassword();
     }
 
     public boolean deleteRepository() {
