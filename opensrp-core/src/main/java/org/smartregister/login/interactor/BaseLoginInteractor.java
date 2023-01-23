@@ -31,6 +31,7 @@ import org.smartregister.job.PullUniqueIdsServiceJob;
 import org.smartregister.job.SyncSettingsServiceJob;
 import org.smartregister.login.task.LocalLoginTask;
 import org.smartregister.login.task.RemoteLoginTask;
+import org.smartregister.login.task.V1RemoteLoginTask;
 import org.smartregister.multitenant.ResetAppHelper;
 import org.smartregister.repository.AllSharedPreferences;
 import org.smartregister.service.UserService;
@@ -57,6 +58,7 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
     private static final int MINIMUM_JOB_FLEX_VALUE = 5;
     private BaseLoginContract.Presenter mLoginPresenter;
     private RemoteLoginTask remoteLoginTask;
+    private V1RemoteLoginTask v1RemoteLogin;
     private boolean isLocalLogin;
 
     private ResetAppHelper resetAppHelper;
@@ -92,6 +94,25 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
         });
     }
 
+    @Override
+    public void v1Login(WeakReference<BaseLoginContract.View> view, String userName, String password) {
+        v1LoginWithLocalFlag(view, !getSharedPreferences().v1FetchForceRemoteLogin()
+                && userName.equalsIgnoreCase(getSharedPreferences().fetchRegisteredANM()), userName, password);
+    }
+
+    public void v1LoginWithLocalFlag(WeakReference<BaseLoginContract.View> view, boolean localLogin, String userName, String password) {
+
+        getLoginView().hideKeyboard();
+        getLoginView().enableLoginButton(false);
+        if (localLogin) {
+            v1localLogin(view, userName, password);
+        } else {
+            v1RemoteLogin(userName, password);
+        }
+
+        Timber.i("Login result finished " + DateTime.now().toString());
+    }
+
     @VisibleForTesting
     protected boolean isRefreshTokenExpired(String userName) {
         return !AccountHelper.isRefreshTokenValid(userName, CoreLibrary.getInstance().getAccountAuthenticatorXml().getAccountType());
@@ -108,6 +129,22 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
         }
 
         Timber.i("Login result finished " + DateTime.now());
+    }
+
+    private void v1localLogin(WeakReference<BaseLoginContract.View> view, String userName, String password) {
+        getLoginView().enableLoginButton(true);
+        boolean isAuthenticated = getUserService().v1isUserInValidGroup(userName, password);
+        if (!isAuthenticated) {
+
+            getLoginView().showErrorDialog(getApplicationContext().getResources().getString(R.string.unauthorized));
+
+        } else if (isAuthenticated && (!AllConstants.TIME_CHECK || TimeStatus.OK.equals(getUserService().validateStoredServerTimeZone()))) {
+
+            v1NavigateToHomePage(userName, password);
+
+        } else {
+            v1LoginWithLocalFlag(view, false, userName, password);
+        }
     }
 
     private void localLogin(WeakReference<BaseLoginContract.View> view, String userName, char[] password) {
@@ -130,6 +167,27 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
 
         }).execute();
 
+    }
+
+    private void v1NavigateToHomePage(String userName, String password) {
+
+        getUserService().v1localLogin(userName, password);
+        getLoginView().goToHome(false);
+
+        CoreLibrary.getInstance().initP2pLibrary(userName);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Timber.i("Starting DrishtiSyncScheduler " + DateTime.now().toString());
+
+                scheduleJobsImmediately();
+
+                Timber.i("Started DrishtiSyncScheduler " + DateTime.now().toString());
+
+                CoreLibrary.getInstance().context().getUniqueIdRepository().releaseReservedIds();
+            }
+        }).start();
     }
 
     private void navigateToHomePage(String userName) {
@@ -236,6 +294,102 @@ public abstract class BaseLoginInteractor implements BaseLoginContract.Interacto
             Timber.e(e);
             getLoginView().showErrorDialog(getApplicationContext().getString(R.string.remote_login_generic_error));
         }
+    }
+
+
+    private void remoteLoginWith(String userName, String password, LoginResponse loginResponse) {
+        getUserService().v1RemoteLogin(userName, password, loginResponse.payload());
+        processServerSettings(loginResponse);
+
+        scheduleJobsPeriodically();
+        scheduleJobsImmediately();
+
+        CoreLibrary.getInstance().initP2pLibrary(userName);
+
+        getLoginView().goToHome(true);
+    }
+
+    private void v1RemoteLogin(final String userName, final String password) {
+
+        try {
+            if (getSharedPreferences().fetchBaseURL("").isEmpty() && StringUtils.isNotBlank(this.getApplicationContext().getString(R.string.opensrp_url))) {
+                getSharedPreferences().savePreference("DRISHTI_BASE_URL", getApplicationContext().getString(R.string.opensrp_url));
+            }
+            if (!getSharedPreferences().fetchBaseURL("").isEmpty()) {
+                v1TryRemoteLogin(userName, password, new Listener<LoginResponse>() {
+
+                    public void onEvent(LoginResponse loginResponse) {
+                        getLoginView().enableLoginButton(true);
+                        if (loginResponse == LoginResponse.SUCCESS) {
+                            String username=loginResponse.payload()!=null && loginResponse.payload().user != null && StringUtils.isNotBlank(loginResponse.payload().user.getUsername())
+                                    ? loginResponse.payload().user.getUsername() : userName;
+
+                            //Capture the location of the user and store it in shared
+                            Set<TeamLocation> userLocaltion;
+                            TeamLocation currentUserLocation;
+                            if (loginResponse.payload() != null){
+                                userLocaltion = loginResponse.payload().team.locations;
+
+                                TeamLocation[] tlocationArray = userLocaltion.toArray(new TeamLocation[1]);
+                                currentUserLocation = tlocationArray[0];
+                                CoreLibrary.getInstance().context().allSharedPreferences().saveUserLocalityName(username, currentUserLocation.name);
+                            }
+
+                            if (getUserService().isUserInPioneerGroup(username)) {
+                                TimeStatus timeStatus = getUserService().validateDeviceTime(
+                                        loginResponse.payload(), AllConstants.MAX_SERVER_TIME_DIFFERENCE
+                                );
+                                if (!AllConstants.TIME_CHECK || timeStatus.equals(TimeStatus.OK)) {
+
+                                    remoteLoginWith(username, password, loginResponse);
+
+                                } else {
+                                    if (timeStatus.equals(TimeStatus.TIMEZONE_MISMATCH)) {
+                                        TimeZone serverTimeZone = UserService.getServerTimeZone(loginResponse.payload());
+
+                                        getLoginView().showErrorDialog(getApplicationContext().getString(timeStatus.getMessage(),
+                                                serverTimeZone.getDisplayName()));
+                                    } else {
+                                        getLoginView().showErrorDialog(getApplicationContext().getString(timeStatus.getMessage()));
+                                    }
+                                }
+                            } else {
+                                // Valid user from wrong group trying to log in
+                                getLoginView().showErrorDialog(getApplicationContext().getString(R.string.unauthorized_group));
+                            }
+                        } else {
+                            if (loginResponse == null) {
+                                getLoginView().showErrorDialog("Sorry, your loginWithLocalFlag failed. Please try again");
+                            } else {
+                                if (loginResponse == NO_INTERNET_CONNECTIVITY) {
+                                    getLoginView().showErrorDialog(getApplicationContext().getResources().getString(R.string.no_internet_connectivity));
+                                } else if (loginResponse == UNKNOWN_RESPONSE) {
+                                    getLoginView().showErrorDialog(getApplicationContext().getResources().getString(R.string.unknown_response));
+                                } else if (loginResponse == UNAUTHORIZED) {
+                                    getLoginView().showErrorDialog(getApplicationContext().getResources().getString(R.string.unauthorized));
+                                } else {
+                                    getLoginView().showErrorDialog(loginResponse.message());
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                getLoginView().enableLoginButton(true);
+                getLoginView().showErrorDialog("OpenSRP Base URL is missing. Please add it in Setting and try again");
+            }
+        } catch (Exception e) {
+            Timber.e(e);
+            getLoginView().showErrorDialog("Error occurred trying to loginWithLocalFlag in. Please try again...");
+        }
+    }
+
+    private void v1TryRemoteLogin(final String userName, final String password, final Listener<LoginResponse> afterLogincheck) {
+        if (v1RemoteLogin != null && !v1RemoteLogin.isCancelled()) {
+            v1RemoteLogin.cancel(true);
+        }
+        v1RemoteLogin = new V1RemoteLoginTask(getLoginView(), userName, password, afterLogincheck);
+        v1RemoteLogin.execute();
     }
 
     private boolean isValidTimecheck(TimeStatus timeStatus) {

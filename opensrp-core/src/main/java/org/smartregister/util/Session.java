@@ -13,6 +13,7 @@ public class Session {
     private byte[] password;
     private String repositoryName = AllConstants.DATABASE_NAME;
     private long sessionExpiryTime = 0;
+    private String v1Password;
 
     public long lengthInMilliseconds() {
         return 24 * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLIS_PER_SECOND;
@@ -22,12 +23,21 @@ public class Session {
         return password;
     }
 
+    public String v1Password() {
+        return v1Password;
+    }
+
     public String repositoryName() {
         return repositoryName;
     }
 
     public Session setPassword(byte[] password) {
         this.password = password;
+        return this;
+    }
+
+    public Session setPassword(String password) {
+        this.v1Password = password;
         return this;
     }
 
@@ -44,6 +54,15 @@ public class Session {
 
     public boolean hasExpired() {
         if (password == null) {
+            return true;
+        }
+
+        long now = new Date().getTime();
+        return now > sessionExpiryTime;
+    }
+
+    public boolean v1HasExpired() {
+        if (v1Password == null) {
             return true;
         }
 

@@ -235,8 +235,9 @@ public abstract class BaseLoginActivity extends MultiLanguageActivity implements
 
     protected void attemptLogin() {
         String username = userNameEditText.getText().toString().trim().toLowerCase(Locale.ENGLISH);
-        char[] password = SecurityHelper.readValue(passwordEditText.getText());
-        mLoginPresenter.attemptLogin(username, password);
+        // Change to String for v1 Openmrs Implementation char[] password = SecurityHelper.readValue(passwordEditText.getText());
+        String password = passwordEditText.getText().toString();
+        mLoginPresenter.v1AttemptLogin(username, password);
     }
 
     @Override

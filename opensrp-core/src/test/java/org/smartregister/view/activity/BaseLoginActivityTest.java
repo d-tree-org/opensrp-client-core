@@ -98,6 +98,7 @@ public class BaseLoginActivityTest extends BaseRobolectricUnitTest {
         userNameEditText.setText(username);
         baseLoginActivity.attemptLogin();
         Mockito.verify(baseLoginActivity.mLoginPresenter).attemptLogin(stringArgumentCaptor.capture(), Mockito.any(char[].class));
+        Mockito.verify(baseLoginActivity.mLoginPresenter).v1AttemptLogin(stringArgumentCaptor.capture(), Mockito.any(String.class));
         Assert.assertNotEquals("JANE", stringArgumentCaptor.getValue());
         Assert.assertEquals("jane", stringArgumentCaptor.getValue());
     }
@@ -109,6 +110,7 @@ public class BaseLoginActivityTest extends BaseRobolectricUnitTest {
 
         baseLoginActivity.onClick(view);
         Mockito.verify(baseLoginActivity.mLoginPresenter).attemptLogin(Mockito.anyString(), Mockito.any(char[].class));
+        Mockito.verify(baseLoginActivity.mLoginPresenter).v1AttemptLogin(Mockito.anyString(), Mockito.any(String.class));
     }
 
 
@@ -119,6 +121,7 @@ public class BaseLoginActivityTest extends BaseRobolectricUnitTest {
 
         Assert.assertTrue(baseLoginActivity.onEditorAction(null, EditorInfo.IME_ACTION_DONE, null));
         Mockito.verify(baseLoginActivity.mLoginPresenter).attemptLogin(Mockito.anyString(), Mockito.any(char[].class));
+        Mockito.verify(baseLoginActivity.mLoginPresenter).v1AttemptLogin(Mockito.anyString(), Mockito.any(String.class));
     }
 
     @Test

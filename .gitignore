@@ -25,3 +25,7 @@ opensrp-path/reports/
 opensrp-core/reports/
 opensrp-core/jacoco.exec
 /github.properties
+caches/
+daemon/
+native/
+wrapper/

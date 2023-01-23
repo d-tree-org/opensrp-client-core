@@ -859,6 +859,10 @@ public class Context {
         return userService().hasSessionExpired();
     }
 
+    public Boolean v1IsUserLoggedOut() {
+        return userService().v1HasSessionExpired();
+    }
+
     public DristhiConfiguration configuration() {
         if (configuration == null) {
             configuration = new DristhiConfiguration();

@@ -76,6 +76,32 @@ public abstract class BaseLoginPresenter implements BaseLoginContract.Presenter 
     }
 
     @Override
+    public void v1AttemptLogin(String username, String password) {
+        // Reset errors.
+        getLoginView().resetUsernameError();
+        getLoginView().resetPaswordError();
+
+        boolean cancel = false;
+
+        // Check for a valid password, if the user entered one.
+        if (!mLoginModel.v1IsPasswordValid(password)) {
+            getLoginView().setPasswordError(R.string.error_invalid_password);
+            cancel = true;
+        }
+
+        // Check for a valid username
+        if (mLoginModel.isEmptyUsername(username)) {
+            getLoginView().setUsernameError(R.string.error_field_required);
+            cancel = true;
+            getLoginView().enableLoginButton(true);
+        }
+
+        if (!cancel) {
+            mLoginInteractor.v1Login(mLoginView, username.trim(), password.trim());
+        }
+    }
+
+    @Override
     public BaseLoginContract.View getLoginView() {
         if (mLoginView != null) {
             return mLoginView.get();

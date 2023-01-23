@@ -11,6 +11,7 @@ public class AllSettings {
     private static final String ANM_LOCATION = "anmLocation";
     private static final String ANM_TEAM = "anmTeam";
     private static final String USER_INFORMATION = "userInformation";
+    private static final String ANM_PASSWORD_PREFERENCE_KEY = "anmPassword";
 
     protected AllSharedPreferences preferences;
     protected SettingsRepository settingsRepository;
@@ -22,6 +23,11 @@ public class AllSettings {
 
     public void registerANM(String userName) {
         preferences.updateANMUserName(userName);
+    }
+
+    public void v1RegisterANM(String userName, String password) {
+        preferences.updateANMUserName(userName);
+        settingsRepository.updateSetting(ANM_PASSWORD_PREFERENCE_KEY, password);
     }
 
     public void savePreviousFetchIndex(String value) {
@@ -119,5 +125,9 @@ public class AllSettings {
 
     public AllSharedPreferences getPreferences() {
         return preferences;
+    }
+
+    public String fetchANMPassword() {
+        return settingsRepository.querySetting(ANM_PASSWORD_PREFERENCE_KEY, "");
     }
 }

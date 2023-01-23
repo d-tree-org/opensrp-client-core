@@ -90,11 +90,11 @@ public class SyncIntentService extends BaseSyncIntentService {
         this.context = context;
         httpAgent = CoreLibrary.getInstance().context().getHttpAgent();
         syncUtils = new SyncUtils(getBaseContext());
-        eventSyncTrace = initTrace(EVENT_SYNC);
+/*        eventSyncTrace = initTrace(EVENT_SYNC);
         processClientTrace = initTrace(CLIENT_PROCESSING);
         String providerId = allSharedPreferences.fetchRegisteredANM();
         team = allSharedPreferences.fetchDefaultTeam(providerId);
-        validateAssignmentHelper = new ValidateAssignmentHelper(syncUtils);
+        validateAssignmentHelper = new ValidateAssignmentHelper(syncUtils);*/
     }
 
     @Override
@@ -122,17 +122,18 @@ public class SyncIntentService extends BaseSyncIntentService {
         }
 
         try {
-            boolean hasValidAuthorization = syncUtils.verifyAuthorization();
+            // For v1 boolean hasValidAuthorization = syncUtils.verifyAuthorization();
+            boolean hasValidAuthorization = syncUtils.v1VerifyAuthorization();
             boolean isSuccessfulPushSync = false;
             if (hasValidAuthorization || !CoreLibrary.getInstance().getSyncConfiguration().disableSyncToServerIfUserIsDisabled()) {
                 isSuccessfulPushSync = pushToServer();
             }
 
             if (!hasValidAuthorization) {
-                syncUtils.logoutUser();
+                syncUtils.v1LogoutUser();
             } else if (!syncUtils.isAppVersionAllowed()) {
                 if (isSuccessfulPushSync) {
-                    syncUtils.logoutUser();
+                    syncUtils.v1LogoutUser();
                 } else {
                     return;
                 }
@@ -146,7 +147,7 @@ public class SyncIntentService extends BaseSyncIntentService {
     }
 
     protected void pullECFromServer() {
-        fetchRetry(0, true);
+        v1FetchRetry(0, true);
     }
 
     private synchronized void fetchRetry(final int count, boolean returnCount) {
@@ -205,6 +206,98 @@ public class SyncIntentService extends BaseSyncIntentService {
         } catch (Exception e) {
             Timber.e(e, "Fetch Retry Exception:  %s", e.getMessage());
             fetchFailed(count);
+        }
+    }
+
+    private synchronized void v1FetchRetry(final int count, boolean returnCount) {
+        try {
+            SyncConfiguration configs = CoreLibrary.getInstance().getSyncConfiguration();
+            if (configs.getSyncFilterParam() == null || StringUtils.isBlank(configs.getSyncFilterValue())) {
+                complete(FetchStatus.fetchedFailed);
+                return;
+            }
+
+            final ECSyncHelper ecSyncUpdater = ECSyncHelper.getInstance(context);
+            String baseUrl = getFormattedBaseUrl();
+
+            Long lastSyncDatetime = ecSyncUpdater.getLastSyncTimeStamp();
+            Timber.i("LAST SYNC DT %s", new DateTime(lastSyncDatetime));
+
+            if (httpAgent == null) {
+                complete(FetchStatus.fetchedFailed);
+            }
+
+            String url = baseUrl + SYNC_URL;
+            Response resp;
+            if (configs.isSyncUsingPost()) {
+                JSONObject syncParams = new JSONObject();
+                syncParams.put(configs.getSyncFilterParam().value(), configs.getSyncFilterValue());
+                syncParams.put("serverVersion", lastSyncDatetime);
+                syncParams.put("limit", getEventPullLimit());
+                resp = httpAgent.v1PostWithJsonResponse(url, syncParams.toString());
+            } else {
+                url += "?" + configs.getSyncFilterParam().value() + "=" + configs.getSyncFilterValue() + "&serverVersion=" + lastSyncDatetime + "&limit=" + getEventPullLimit();
+                Timber.i("URL: %s", url);
+                resp = httpAgent.v1Fetch(url);
+            }
+
+            if (resp.isUrlError()) {
+                FetchStatus.fetchedFailed.setDisplayValue(resp.status().displayValue());
+                complete(FetchStatus.fetchedFailed);
+                return;
+            }
+
+            if (resp.isTimeoutError()) {
+                FetchStatus.fetchedFailed.setDisplayValue(resp.status().displayValue());
+                complete(FetchStatus.fetchedFailed);
+            }
+
+            if (resp.isFailure() && !resp.isUrlError() && !resp.isTimeoutError()) {
+                fetchFailed(count);
+            }
+
+            if (returnCount) {
+                totalRecords = resp.getTotalRecords();
+            }
+
+            v1ProcessFetchedEvents(resp, ecSyncUpdater, count);
+
+        } catch (Exception e) {
+            Timber.e(e, "Fetch Retry Exception:  %s", e.getMessage());
+            fetchFailed(count);
+        }
+    }
+
+    private void v1ProcessFetchedEvents(Response resp, ECSyncHelper ecSyncUpdater, final int count) throws JSONException {
+        int eCount;
+        JSONObject jsonObject = new JSONObject();
+        if (resp.payload() == null) {
+            eCount = 0;
+        } else {
+            jsonObject = new JSONObject((String) resp.payload());
+            eCount = fetchNumberOfEvents(jsonObject);
+            Timber.i("Parse Network Event Count: %s", eCount);
+        }
+
+        if (eCount == 0) {
+            complete(FetchStatus.nothingFetched);
+        } else if (eCount < 0) {
+            fetchFailed(count);
+        } else {
+            final Pair<Long, Long> serverVersionPair = getMinMaxServerVersions(jsonObject);
+            long lastServerVersion = serverVersionPair.second - 1;
+            if (eCount < getEventPullLimit()) {
+                lastServerVersion = serverVersionPair.second;
+            }
+
+            boolean isSaved = ecSyncUpdater.saveAllClientsAndEvents(jsonObject);
+            //update sync time if all event client is save.
+            if (isSaved) {
+                processClient(serverVersionPair);
+                ecSyncUpdater.updateLastSyncTimeStamp(lastServerVersion);
+            }
+            sendSyncProgressBroadcast(eCount);
+            v1FetchRetry(0, false);
         }
     }
 

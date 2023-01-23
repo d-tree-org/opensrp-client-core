@@ -22,13 +22,18 @@ public class BaseLoginModel implements BaseLoginContract.Model {
     }
 
     @Override
+    public boolean v1IsPasswordValid(String password) {
+        return !TextUtils.isEmpty(password) && password.length() > 1;
+    }
+
+    @Override
     public boolean isEmptyUsername(String username) {
         return username == null || TextUtils.isEmpty(username);
     }
 
     @Override
     public boolean isUserLoggedOut() {
-        return getOpenSRPContext().IsUserLoggedOut();
+        return getOpenSRPContext().v1IsUserLoggedOut();
     }
 
 }
