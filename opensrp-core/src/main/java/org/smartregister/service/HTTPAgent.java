@@ -52,7 +52,9 @@ import org.smartregister.domain.Response;
 import org.smartregister.domain.ResponseErrorStatus;
 import org.smartregister.domain.ResponseStatus;
 import org.smartregister.domain.jsonmapping.LoginResponseData;
+import org.smartregister.repository.AllSettings;
 import org.smartregister.repository.AllSharedPreferences;
+import org.smartregister.repository.SettingsRepository;
 import org.smartregister.security.SecurityHelper;
 import org.smartregister.ssl.OpensrpSSLHelper;
 import org.smartregister.util.Utils;
@@ -139,6 +141,33 @@ public class HTTPAgent {
         return urlConnection;
     }
 
+    /**
+     * @author  Rodgers Andati
+     * @since   2019-04-25
+     * This method initializes httpurlconnection
+     * @param requestURLPath This is the url to be open http connection to.
+     * @param useBasicAuth This is whether to set up basic authentication or not.
+     * @return HttpURLConnection This returns the http connection to opensrp server.
+     */
+    private HttpURLConnection v1InitializeHttp(String requestURLPath, boolean useBasicAuth) throws IOException {
+        URL url = new URL(requestURLPath);
+        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+        if (urlConnection instanceof HttpsURLConnection) {
+            OpensrpSSLHelper opensrpSSLHelper = new OpensrpSSLHelper(context, configuration);
+            ((HttpsURLConnection) urlConnection).setSSLSocketFactory(opensrpSSLHelper.getSSLSocketFactory());
+        }
+        urlConnection.setConnectTimeout(getConnectTimeout());
+        urlConnection.setReadTimeout(getReadTimeout());
+
+        if(useBasicAuth) {
+            AllSettings settings = new AllSettings(allSharedPreferences, new SettingsRepository());
+            final String basicAuth = "Basic " + Base64.encodeToString((allSharedPreferences.fetchRegisteredANM() +
+                    ":" + settings.fetchANMPassword()).getBytes(), Base64.NO_WRAP);
+            urlConnection.setRequestProperty("Authorization", basicAuth);
+        }
+        return urlConnection;
+    }
+
     @VisibleForTesting
     protected String getBearerToken() {
         return AccountHelper.getOAuthToken(allSharedPreferences.fetchRegisteredANM(), CoreLibrary.getInstance().getAccountAuthenticatorXml().getAccountType(), AccountHelper.TOKEN_TYPE.PROVIDER);
@@ -175,6 +204,56 @@ public class HTTPAgent {
             Timber.e(exception, "EXCEPTION %s", exception.toString());
             return new Response<>(ResponseStatus.failure, null);
         }
+    }
+
+
+    public Response<String> v1Fetch(String requestURLPath) {
+        HttpURLConnection urlConnection;
+        try {
+            urlConnection = v1InitializeHttp(requestURLPath, true);
+            return handleResponse(urlConnection);
+
+        } catch (IOException ex) {
+            Timber.e(ex, "EXCEPTION %s", ex.toString());
+            return new Response<>(ResponseStatus.failure, null);
+        }
+    }
+
+    private Response<String> handleResponse(HttpURLConnection urlConnection) {
+        String responseString;
+        String totalRecords;
+        try {
+            int statusCode = urlConnection.getResponseCode();
+
+            InputStream inputStream;
+            if (statusCode >= HttpURLConnection.HTTP_BAD_REQUEST)
+                inputStream = urlConnection.getErrorStream();
+            else
+                inputStream = urlConnection.getInputStream();
+
+            responseString = IOUtils.toString(inputStream);
+
+            totalRecords = urlConnection.getHeaderField(AllConstants.SyncProgressConstants.TOTAL_RECORDS);
+
+            Timber.d("response string: %s using url %s", responseString, urlConnection.getURL());
+
+        } catch (MalformedURLException e) {
+            Timber.e(e,  "%s %s", MALFORMED_URL, e.toString());
+            ResponseStatus.failure.setDisplayValue(ResponseErrorStatus.malformed_url.name());
+            return new Response<>(ResponseStatus.failure, null);
+        } catch (SocketTimeoutException e) {
+            Timber.e(e,  "%s %s", TIMEOUT, e.toString());
+            ResponseStatus.failure.setDisplayValue(ResponseErrorStatus.timeout.name());
+            return new Response<>(ResponseStatus.failure, null);
+        } catch (IOException e) {
+            Timber.e(e,  "%s %s", NO_INTERNET_CONNECTIVITY, e.toString());
+            return new Response<>(ResponseStatus.failure, null);
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+        return new Response<>(ResponseStatus.success, responseString).withTotalRecords(Utils.tryParseLong(totalRecords,0));
     }
 
     public void invalidateExpiredCachedAccessToken() {
@@ -242,6 +321,41 @@ public class HTTPAgent {
         return post(postURLPath, jsonPayload);
     }
 
+    public Response<String> v1PostWithJsonResponse(String postURLPath, String jsonPayload) {
+        logResponse(postURLPath, jsonPayload);
+        return v1Post(postURLPath, jsonPayload);
+    }
+
+    public Response<String> v1Post(String postURLPath, String jsonPayload) {
+        HttpURLConnection urlConnection;
+        try {
+            urlConnection = v1InitializeHttp(postURLPath, true);
+
+            urlConnection.setDoOutput(true);
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            urlConnection.setRequestProperty("Content-Encoding", "gzip");
+
+            byte[] content = gzipCompression.compress(jsonPayload);
+            urlConnection.setFixedLengthStreamingMode(content.length);
+
+            OutputStream os = urlConnection.getOutputStream();
+            BufferedOutputStream writer = new BufferedOutputStream(os);
+            writer.write(content);
+            writer.flush();
+            writer.close();
+            os.close();
+
+            urlConnection.connect();
+
+            return handleResponse(urlConnection);
+
+        } catch (IOException ex) {
+            Timber.e(ex,  "EXCEPTION: %s", ex.toString());
+            return new Response<>(ResponseStatus.failure, null);
+        }
+    }
+
     private void logResponse(String postURLPath, String jsonPayload) {
         Timber.d("postURLPath: %s and jsonPayLoad: %s", postURLPath, jsonPayload);
     }
@@ -301,6 +415,62 @@ public class HTTPAgent {
         }
         return loginResponse;
     }
+
+    public LoginResponse v1UrlCanBeAccessWithGivenCredentials(String requestURL, String userName, String password) {
+        LoginResponse loginResponse = null;
+        HttpURLConnection urlConnection = null;
+        String url = null;
+        try {
+            url = requestURL.replaceAll("\\s+", "");
+            urlConnection = v1InitializeHttp(url, false);
+
+            final String basicAuth = "Basic " + Base64.encodeToString((userName + ":" + password).getBytes(), Base64.NO_WRAP);
+            urlConnection.setRequestProperty("Authorization", basicAuth);
+            int statusCode = urlConnection.getResponseCode();
+            InputStream inputStream;
+            if (statusCode >= HttpURLConnection.HTTP_BAD_REQUEST)
+                inputStream = urlConnection.getErrorStream();
+            else
+                inputStream = urlConnection.getInputStream();
+            String responseString = IOUtils.toString(inputStream);
+            if (statusCode == HttpURLConnection.HTTP_OK) {
+
+                Timber.d("response String: %s using request url %s", responseString, url);
+                LoginResponseData responseData = getResponseBody(responseString);
+                loginResponse = retrieveResponse(responseData);
+            } else if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                Timber.e("Invalid credentials for: %s using %s", userName, url);
+                loginResponse = UNAUTHORIZED;
+            } else if (StringUtils.isNotBlank(responseString)) {
+                //extract message string from the default tomcat server response which is usually between <p><b>message</b> and </u></p>
+                responseString = StringUtils.substringBetween(responseString, "<p><b>message</b>", "</u></p>");
+                if (StringUtils.isNotBlank(responseString)) {
+                    //remove the underline tag from the responseString
+                    responseString = responseString.replace("<u>", "").trim();
+                    loginResponse = CUSTOM_SERVER_RESPONSE.withMessage(responseString);
+                }
+            } else {
+                Timber.e("Bad response from Dristhi. Status code: %s username: %s using %s ", statusCode, userName, url);
+                loginResponse = UNKNOWN_RESPONSE;
+            }
+        } catch (MalformedURLException e) {
+            Timber.e(e,  "Failed to check credentials bad url %s", url);
+            loginResponse = MALFORMED_URL;
+        } catch (SocketTimeoutException e) {
+            Timber.e(e,"SocketTimeoutException when authenticating %s", userName);
+            loginResponse = TIMEOUT;
+            Timber.e(e,"Failed to check credentials of: %s using %s . Error: %s", userName, url, e.toString());
+        } catch (IOException e) {
+            Timber.e(e,"Failed to check credentials of: %s  using %s . Error: %s", userName, url, e.toString());
+            loginResponse = NO_INTERNET_CONNECTIVITY;
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+        return loginResponse;
+    }
+
 
     public DownloadStatus downloadFromUrl(String url, String filename) {
 
