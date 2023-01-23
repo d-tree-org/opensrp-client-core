@@ -18,6 +18,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
+import android.util.Base64;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
@@ -37,6 +38,7 @@ import org.smartregister.repository.BaseRepository;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 import timber.log.Timber;
@@ -45,6 +47,8 @@ import timber.log.Timber;
  * Created by samuelgithengi on 1/28/19.
  */
 public class SyncUtils {
+
+    private static final String DETAILS_URL = "/user-details?anm-id=";
 
     private org.smartregister.Context opensrpContext = CoreLibrary.getInstance().context();
 
@@ -56,6 +60,36 @@ public class SyncUtils {
 
     public boolean verifyAuthorization() {
         return CoreLibrary.getInstance().context().getHttpAgent().verifyAuthorization();
+    }
+
+    public boolean v1VerifyAuthorization() {
+        String baseUrl = opensrpContext.configuration().dristhiBaseURL();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        final String username = opensrpContext.allSharedPreferences().fetchRegisteredANM();
+        final String password = opensrpContext.allSettings().fetchANMPassword();
+        baseUrl = baseUrl + DETAILS_URL + username;
+        try {
+            URL url = new URL(baseUrl);
+            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+            final String basicAuth = "Basic " + Base64.encodeToString((username + ":" + password).getBytes(), Base64.NO_WRAP);
+            urlConnection.setRequestProperty("Authorization", basicAuth);
+            int statusCode = urlConnection.getResponseCode();
+            urlConnection.disconnect();
+            if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                Timber.i("User not authorized. User access was revoked, will log off user");
+                return false;
+            } else if (statusCode != HttpURLConnection.HTTP_OK) {
+                Timber.w("Error occurred verifying authorization, User will not be logged off");
+            } else {
+                Timber.i("User is Authorized");
+            }
+
+        } catch (IOException e) {
+            Timber.e(e);
+        }
+        return true;
     }
 
     public void logoutUser() throws AuthenticatorException, OperationCanceledException, IOException {
@@ -195,5 +229,25 @@ public class SyncUtils {
             Timber.e(e);
         }
         return minAllowedAppVersion;
+    }
+
+    public void v1LogoutUser() {
+        //force remote login
+        opensrpContext.userService().v1ForceRemoteLogin();
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setPackage(context.getPackageName());
+        //retrieve the main/launcher activity defined in the manifest and open it
+        List<ResolveInfo> activities = context.getPackageManager().queryIntentActivities(intent, 0);
+        if (activities.size() == 1) {
+            intent = intent.setClassName(context.getPackageName(), activities.get(0).activityInfo.name);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra(ACCOUNT_DISABLED, context.getString(R.string.account_disabled_logged_off));
+            context.startActivity(intent);
+        }
+        //logoff opensrp session
+        opensrpContext.userService().logoutSession();
     }
 }
