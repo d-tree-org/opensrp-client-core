@@ -42,7 +42,7 @@ public class ConnectivityChangeReceiverTest extends BaseRobolectricUnitTest {
     public void tearDown(){
         // Log out the user
         Session session = ReflectionHelpers.getField(CoreLibrary.getInstance().context().userService(), "session");
-        session.setPassword(null);
+        session.setPassword("");
         session.start(0);
         ReflectionHelpers.setStaticField(CoreLibrary.class, "instance", null);
 
