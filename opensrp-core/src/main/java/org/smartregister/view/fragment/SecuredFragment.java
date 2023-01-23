@@ -50,7 +50,7 @@ public abstract class SecuredFragment extends Fragment {
         };
         Event.ON_LOGOUT.addListener(logoutListener);
 
-        if (context().IsUserLoggedOut()) {
+        if (context().v1IsUserLoggedOut()) {
             DrishtiApplication application = (DrishtiApplication) this.getActivity()
                     .getApplication();
             application.logoutCurrentUser();
@@ -67,7 +67,7 @@ public abstract class SecuredFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (context().IsUserLoggedOut()) {
+        if (context().v1IsUserLoggedOut()) {
             DrishtiApplication application = (DrishtiApplication) this.getActivity()
                     .getApplication();
             application.logoutCurrentUser();
