@@ -12,6 +12,7 @@ public interface BaseLoginContract {
     interface Presenter {
 
         void attemptLogin(String username, char[] password);
+        void v1AttemptLogin(String username, String password);
 
         View getLoginView();
 
@@ -75,6 +76,7 @@ public interface BaseLoginContract {
         void onDestroy(boolean isChangingConfiguration);
 
         void login(WeakReference<View> view, String userName, char[] password);
+        void v1Login(WeakReference<View> view, String userName, String password);
 
         void showPasswordResetView(String passwordResetEndpoint);
     }
@@ -84,6 +86,7 @@ public interface BaseLoginContract {
         boolean isEmptyUsername(String username);
 
         boolean isPasswordValid(char[] password);
+        boolean v1IsPasswordValid(String password);
 
         org.smartregister.Context getOpenSRPContext();
 
