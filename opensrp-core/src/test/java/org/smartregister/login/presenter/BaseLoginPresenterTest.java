@@ -87,6 +87,7 @@ public class BaseLoginPresenterTest extends BaseRobolectricUnitTest {
     public void testAttemptLoginShouldErrorIfAppIsOutdated() {
         when(loginView.isAppVersionAllowed()).thenReturn(false);
         presenter.attemptLogin("john", "doe".toCharArray());
+        presenter.v1AttemptLogin("john", "doe");
         verify(loginView).showErrorDialog(activity.getString(R.string.outdated_app));
         verify(loginView).isAppVersionAllowed();
         verify(loginView).getActivityContext();
@@ -98,6 +99,7 @@ public class BaseLoginPresenterTest extends BaseRobolectricUnitTest {
     public void testAttemptLoginShouldNotInvokeLoginAndDisplaysErrors() {
         when(loginView.isAppVersionAllowed()).thenReturn(true);
         presenter.attemptLogin("", "".toCharArray());
+        presenter.v1AttemptLogin("", "");
         verify(loginView).setPasswordError(R.string.error_invalid_password);
         verify(loginView).setUsernameError(R.string.error_field_required);
         verify(loginView).enableLoginButton(true);
@@ -108,6 +110,7 @@ public class BaseLoginPresenterTest extends BaseRobolectricUnitTest {
     public void testAttemptLoginShouldInvokeLogin() {
         when(loginView.isAppVersionAllowed()).thenReturn(true);
         presenter.attemptLogin("john", "doe".toCharArray());
+        presenter.v1AttemptLogin("john", "doe");
         verify(loginView, never()).setPasswordError(R.string.error_invalid_password);
         verify(loginView, never()).setUsernameError(R.string.error_field_required);
         verify(loginView, never()).enableLoginButton(true);
