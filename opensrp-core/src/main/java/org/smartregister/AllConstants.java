@@ -598,6 +598,7 @@ public class AllConstants {
     public static class EventType {
         public static final String BITRH_REGISTRATION = "Birth Registration";
         public static final String NEW_WOMAN_REGISTRATION = "New Woman Registration";
+        public static final String UPDATE_FAMILY_MEMBER_REGISTRATION = "Update Family Member Registration";
     }
 
     public static class Entity {

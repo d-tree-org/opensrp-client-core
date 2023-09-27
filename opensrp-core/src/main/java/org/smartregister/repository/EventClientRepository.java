@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,6 +75,8 @@ public class EventClientRepository extends BaseRepository {
     public static final String ZEIR_ID = "ZEIR_ID";
 
     public static final String M_ZEIR_ID = "M_ZEIR_ID";
+
+    public static final String OPENSRP_ID = "opensrp_id";
 
     protected Table clientTable;
     protected Table eventTable;
@@ -2357,7 +2360,7 @@ public class EventClientRepository extends BaseRepository {
                 + " IN (" + StringUtils.repeat("?", ",", taskIds.size()) + ")", taskIds.toArray(new String[0]));
     }
 
-    public DuplicateZeirIdStatus cleanDuplicateMotherIds() throws Exception {
+    public DuplicateZeirIdStatus cleanDuplicateMotherIds(String[] eventTypes) throws Exception {
         String username = Context.getInstance().userService().getAllSharedPreferences().fetchRegisteredANM();
 
         UniqueIdRepository uniqueIdRepository = Context.getInstance().getUniqueIdRepository();
@@ -2384,6 +2387,7 @@ public class EventClientRepository extends BaseRepository {
 
             JSONObject clientJson = getClientByBaseEntityId(baseEntityId);
             JSONObject identifiers = clientJson.getJSONObject(AllConstants.IDENTIFIERS);
+            JSONObject familyHeadJson = null;
 
             long unusedIds = uniqueIdRepository.countUnUsedIds();
             if (unusedIds <= 30) { // Mske sure we have enough unused IDs left
@@ -2401,16 +2405,72 @@ public class EventClientRepository extends BaseRepository {
             }
 
             String eventType = AllConstants.EventType.BITRH_REGISTRATION;
-            String clientType = clientJson.getString(AllConstants.CLIENT_TYPE);
+            String clientType = clientJson.optString(AllConstants.CLIENT_TYPE);
+
+            List<String> eventTypesList = new ArrayList<>();
 
             if (AllConstants.CHILD_TYPE.equals(clientType)) {
-                identifiers.put(ZEIR_ID, newZeirId.replaceAll("-", ""));
+                String identifierLabel = ZEIR_ID;
+                if (!identifiers.has(ZEIR_ID)) {
+                    identifierLabel = ZEIR_ID.toLowerCase(Locale.ROOT);
+                }
+
+                identifiers.put(identifierLabel, newZeirId.replaceAll("-", ""));
             } else if (AllConstants.Entity.MOTHER.equals(clientType)) {
                 identifiers.put(M_ZEIR_ID, newZeirId);
                 eventType = AllConstants.EventType.NEW_WOMAN_REGISTRATION;
+            } else if (AllConstants.FAMILY.equals(clientType)) {
+                identifiers.put(OPENSRP_ID, newZeirId.replaceAll("-", "") + "_family");
+                JSONObject relationshipsJsonObject = clientJson.getJSONObject("relationships");
+                JSONArray relatioshipsHeadArray = relationshipsJsonObject.getJSONArray("family_head");
+                String familyHeadBaEntityId;
+                if (relatioshipsHeadArray.length() > 0) {
+                    familyHeadBaEntityId = relatioshipsHeadArray.getString(0);
+                    familyHeadJson = getClientByBaseEntityId(familyHeadBaEntityId);
+                    JSONObject familyHeadIdentifiers = familyHeadJson.getJSONObject(AllConstants.IDENTIFIERS);
+                    familyHeadIdentifiers.put(OPENSRP_ID, newZeirId.replaceAll("-", ""));
+                }
+                JSONObject familyHeadIdentifiers = familyHeadJson.getJSONObject(AllConstants.IDENTIFIERS);
+                familyHeadIdentifiers.put(OPENSRP_ID, newZeirId.replaceAll("-", ""));
+            } else {
+                String identifierLabel = ZEIR_ID.toLowerCase(Locale.ROOT);
+                if (identifiers.has(ZEIR_ID)) {
+                    identifierLabel = ZEIR_ID;
+                } else if (identifiers.has("M_ZEIR_ID")) {
+                    identifierLabel = "M_ZEIR_ID";
+                } else if (identifiers.has("ANC_ID")) {
+                    identifierLabel = "ANC_ID";
+                } else if (identifiers.has("ANC_ID")) {
+                    identifierLabel = "ANC_ID";
+                } else if (identifiers.has("F_ZEIR_ID")) {
+                    identifierLabel = "F_ZEIR_ID";
+                } else if (identifiers.has(OPENSRP_ID)) {
+                    identifierLabel = OPENSRP_ID;
+                }
+                identifiers.put(identifierLabel, newZeirId.replaceAll("-", ""));
             }
-            clientJson.put(AllConstants.IDENTIFIERS, identifiers);
+            eventTypesList.add(eventType);
+            if (eventTypes != null) {
+                Collections.addAll(eventTypesList, eventTypes);
+            }
 
+            // Update Family Head
+            if (familyHeadJson != null) {
+                addorUpdateClient(familyHeadJson.getString(client_column.baseEntityId.name()), familyHeadJson);
+                List<EventClient> familyHeadRegistrationEvent = getEvents(
+                        Collections.singletonList(familyHeadJson.getString(client_column.baseEntityId.name())),
+                        Collections.singletonList(BaseRepository.TYPE_Synced),
+                        Collections.singletonList(AllConstants.EventType.UPDATE_FAMILY_MEMBER_REGISTRATION)
+                );
+                Event familyHeadEvent = null;
+                if (!familyHeadRegistrationEvent.isEmpty())
+                    familyHeadEvent = familyHeadRegistrationEvent.get(0).getEvent();
+                Client familyHeadClient = convert(familyHeadJson, Client.class);
+                DrishtiApplication.getInstance().getClientProcessor().processClient(Collections.singletonList(new EventClient(familyHeadEvent, familyHeadClient)));
+                markClientValidationStatus(familyHeadJson.getString(client_column.baseEntityId.name()), false);
+            }
+
+            clientJson.put(AllConstants.IDENTIFIERS, identifiers);
             // Add events to process this
             addorUpdateClient(baseEntityId, clientJson);
 
@@ -2418,7 +2478,7 @@ public class EventClientRepository extends BaseRepository {
             List<EventClient> registrationEvent = getEvents(
                     Collections.singletonList(baseEntityId),
                     Collections.singletonList(BaseRepository.TYPE_Synced),
-                    Collections.singletonList(eventType)
+                    eventTypesList
             );
             Event event = null;
             if (!registrationEvent.isEmpty())

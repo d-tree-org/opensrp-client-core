@@ -70,4 +70,18 @@ public class ZeirIdCleanupRepositoryTest extends BaseRobolectricUnitTest {
         return cursor;
     }
 
+    @Test
+    public void getClientsWithDuplicateOpenSrpIdsReturnsMap() {
+        when(sqLiteDatabase.rawQuery(anyString(), any())).thenReturn(getDuplicateOpensrpIdCursor());
+        Map<String, String> duplicateOpenSRPId = zeirIdCleanupRepository.getClientsWithDuplicateZeirIds();
+        Assert.assertEquals(2, duplicateOpenSRPId.size());
+    }
+
+    public MatrixCursor getDuplicateOpensrpIdCursor() {
+        MatrixCursor cursor = new MatrixCursor(new String[]{"baseEntityId", "opensrp_id", "prev_opensrp_id"});
+        cursor.addRow(new Object[]{"bbae7f5c-8ba9-4e6d-86a7-9f6ee911c040", "00003jlj6", null});
+        cursor.addRow(new Object[]{"19f79a8b-55d7-4042-981c-fb9fa470802a", "00003jlj5", "00003jlj5"});
+        return cursor;
+    }
+
 }
