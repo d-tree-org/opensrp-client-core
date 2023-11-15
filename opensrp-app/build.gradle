@@ -160,7 +160,7 @@ def githubProperties = new Properties()
 githubProperties.load(new FileInputStream(rootProject.file("github.properties")))
 
 def getVersionName = { ->
-    return "1.8.31-DTREE-3-SNAPSHOT" // Library version
+    return "1.8.31-DTREE-4-SNAPSHOT" // Library version
 }
 
 def getArtificatId = { ->
@@ -344,6 +344,8 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
             'jacoco/testDebugUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec'
     ]))
 }
+
+tasks.register("prepareKotlinBuildScriptModel"){}
 
 coveralls {
     jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/merged.xml"
