@@ -28,78 +28,97 @@
         android:largeHeap="true">
         <service
             android:enabled="true"
+            android:exported="false"
             android:name=".service.ImageUploadSyncService" />
 
         <activity
             android:name=".view.activity.ReportsActivity"
+            android:exported="false"
             android:theme="@style/AppThemeNoTitle"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.VideosActivity"
             android:theme="@style/AppThemeNoTitle"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.ReportIndicatorListViewActivity"
             android:theme="@style/AppThemeNoTitle"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.ReportIndicatorDetailActivity"
             android:theme="@style/AppThemeNoTitle"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.ReportIndicatorCaseListActivity"
             android:theme="@style/AppThemeNoTitle"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.EligibleCoupleDetailActivity"
             android:theme="@style/AppThemeNoTitle"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.CameraLaunchActivity"
             android:theme="@android:style/Theme.Holo.NoActionBar"
+            android:exported="false"
             android:screenOrientation="landscape" />
         <activity
             android:name=".view.activity.FormActivity"
             android:theme="@style/AppThemeNoTitle"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="false"/>
         <activity
             android:name=".view.activity.MicroFormActivity"
             android:theme="@android:style/Theme.Holo.Dialog.NoActionBar"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            android:exported="false"/>
         <activity
             android:name=".view.activity.NativeECSmartRegisterActivity"
             android:screenOrientation="landscape"
-            android:theme="@style/AppThemeNoTitle" />
+            android:theme="@style/AppThemeNoTitle"
+            android:exported="false"/>
         <activity
             android:name=".view.activity.BarcodeScanActivity"
             android:configChanges="keyboardHidden|orientation"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="false"/>
 
         <activity
             android:name=".view.activity.NativeHomeActivity"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            android:exported="false"/>
 
         <activity
             android:name=".view.activity.SettingsActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="false"/>
 
-        <receiver android:name=".view.receiver.SyncBroadcastReceiver" />
-        <receiver android:name=".view.receiver.ConnectivityChangeReceiver">
+        <receiver android:name=".view.receiver.SyncBroadcastReceiver"
+            android:exported="false"/>
+        <receiver android:name=".view.receiver.ConnectivityChangeReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".view.receiver.TimeChangedBroadcastReceiver">
+        <receiver android:name=".view.receiver.TimeChangedBroadcastReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
 
-        <service android:name=".service.intentservices.ReplicationIntentService" />
+        <service android:name=".service.intentservices.ReplicationIntentService"
+            android:exported="false"/>
 
-        <service android:name=".sync.intent.P2pProcessRecordsService"/>
+        <service android:name=".sync.intent.P2pProcessRecordsService"
+            android:exported="false"/>
 
         <meta-data
             android:name="com.google.android.gms.vision.Dependencies"
