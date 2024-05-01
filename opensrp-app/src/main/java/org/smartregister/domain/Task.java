@@ -25,7 +25,7 @@ public class Task implements Serializable {
         ARCHIVED
     }
 
-    public static final String[] INACTIVE_TASK_STATUS = new String[]{TaskStatus.CANCELLED.name(), TaskStatus.ARCHIVED.name()};
+    public static final String[] INACTIVE_TASK_STATUS = new String[]{TaskStatus.CANCELLED.name(), TaskStatus.ARCHIVED.name(), TaskStatus.COMPLETED.name()};
 
     private String identifier;
 
