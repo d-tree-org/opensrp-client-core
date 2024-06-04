@@ -430,6 +430,7 @@ public class JsonFormUtils {
 
         String formSubmissionField = getString(jsonObject, KEY);
         String obsValue = value;
+        Long obsLongValue = null;
 
         String dataType = getString(jsonObject, OPENMRS_DATA_TYPE);
         if (StringUtils.isBlank(dataType)) {
@@ -437,9 +438,14 @@ public class JsonFormUtils {
         }
 
         if (dataType.equals(AllConstants.DATE) && StringUtils.isNotBlank(obsValue)) {
-            String newValue = convertToOpenMRSDate(obsValue);
-            if (newValue != null) {
-                obsValue = newValue;
+            Long validLong = isValidLong(obsValue);
+            if(validLong != null){
+                obsLongValue = validLong;
+            }else{
+                String newValue = convertToOpenMRSDate(obsValue);
+                if (newValue != null) {
+                    obsValue = newValue;
+                }
             }
         }
 
@@ -485,7 +491,7 @@ public class JsonFormUtils {
                     vall.add(chosenConcept);
                     humanReadableValues.add(obsValue);
                 } else {
-                    vall.add(obsValue);
+                    vall.add((obsLongValue != null) ? obsLongValue:obsValue);
                 }
             }
             e.addObs(new Obs(CONCEPT, dataType, entityIdVal, entityParentVal, vall, humanReadableValues, null,
@@ -499,6 +505,17 @@ public class JsonFormUtils {
 
             e.addObs(new Obs("formsubmissionField", dataType, formSubmissionField, "", vall, new ArrayList<>(), null,
                     formSubmissionField));
+        }
+    }
+
+    public static Long isValidLong(String str) {
+        if (str == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(str);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
