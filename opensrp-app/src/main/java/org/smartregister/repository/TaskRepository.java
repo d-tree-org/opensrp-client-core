@@ -229,7 +229,7 @@ public class TaskRepository extends BaseRepository {
         Cursor cursor = null;
         Set<Task> taskSet = new HashSet<>();
         try {
-            cursor = getReadableDatabase().rawQuery(String.format("SELECT * FROM %s WHERE %s = ? AND %s = ? AND %s = ? AND (code != 'referral' OR (code = 'referral' AND requester = ?) OR code = 'Linkage') AND %s = ? AND %s NOT IN (%s)",
+            cursor = getReadableDatabase().rawQuery(String.format("SELECT * FROM %s WHERE %s = ? AND %s = ? AND %s = ? AND (code != 'Referral' OR (code = 'Referral' AND requester = ?) OR code = 'Linkage') AND %s = ? AND %s NOT IN (%s)",
                             TASK_TABLE, PLAN_ID, GROUP_ID, FOR, CODE, STATUS,
                             TextUtils.join(",", Collections.nCopies(INACTIVE_TASK_STATUS.length, "?")))
                     , ArrayUtils.addAll(new String[]{planId, groupId, forEntity, requester, code}, INACTIVE_TASK_STATUS));
