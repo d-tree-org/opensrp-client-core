@@ -74,9 +74,16 @@ public class FormSubmissionSyncService {
         if (pendingFormSubmissions.isEmpty()) {
             return;
         }
+        String baseUrl = configuration.dristhiBaseURL();
+
+        String endString = "/";
+        if (baseUrl.endsWith(endString)) {
+            baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
+        }
+
         String jsonPayload = mapToFormSubmissionDTO(pendingFormSubmissions);
         Response<String> response = httpAgent
-                .post(format("{0}/{1}", configuration.dristhiBaseURL(), FORM_SUBMISSIONS_PATH),
+                .post(format("{0}/{1}", baseUrl, FORM_SUBMISSIONS_PATH),
                         jsonPayload);
         if (response.isFailure()) {
             logError(format("Form submissions sync failed. Submissions:  {0}",
