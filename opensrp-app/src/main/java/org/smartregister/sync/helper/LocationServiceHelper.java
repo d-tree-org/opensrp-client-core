@@ -205,8 +205,12 @@ public class LocationServiceHelper {
         if (!locations.isEmpty()) {
             String jsonPayload = locationGson.toJson(locations);
             String baseUrl = CoreLibrary.getInstance().context().configuration().dristhiBaseURL();
+            String endString = "/";
+            if (baseUrl.endsWith(endString)) {
+                baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
+            }
             Response<String> response = httpAgent.postWithJsonResponse(
-                    MessageFormat.format("{0}/{1}",
+                    MessageFormat.format("{0}{1}",
                             baseUrl,
                             CREATE_STRUCTURE_URL),
                     jsonPayload);
