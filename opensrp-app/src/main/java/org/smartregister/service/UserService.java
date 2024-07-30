@@ -295,7 +295,14 @@ public class UserService {
     public LoginResponse isValidRemoteLogin(String userName, String password) {
         String requestURL;
 
-        requestURL = configuration.dristhiBaseURL() + OPENSRP_AUTH_USER_URL_PATH;
+        String baseUrl = configuration.dristhiBaseURL();
+
+        String endString = "/";
+        if (baseUrl.endsWith(endString)) {
+            baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
+        }
+
+        requestURL = baseUrl + OPENSRP_AUTH_USER_URL_PATH;
 
         LoginResponse loginResponse = httpAgent
                 .urlCanBeAccessWithGivenCredentials(requestURL, userName, password);

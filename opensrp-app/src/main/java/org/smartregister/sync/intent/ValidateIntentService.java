@@ -27,7 +27,7 @@ public class ValidateIntentService extends BaseSyncIntentService {
     private Context context;
     private HTTPAgent httpAgent;
     private static final int FETCH_LIMIT = 100;
-    private static final String VALIDATE_SYNC_PATH = "rest/validate/sync";
+    private static final String VALIDATE_SYNC_PATH = "/rest/validate/sync";
 
     public ValidateIntentService() {
         super("ValidateIntentService");
@@ -71,7 +71,7 @@ public class ValidateIntentService extends BaseSyncIntentService {
 
             String jsonPayload = request.toString();
             Response<String> response = httpAgent.postWithJsonResponse(
-                    MessageFormat.format("{0}/{1}",
+                    MessageFormat.format("{0}{1}",
                             baseUrl,
                             VALIDATE_SYNC_PATH),
                     jsonPayload);

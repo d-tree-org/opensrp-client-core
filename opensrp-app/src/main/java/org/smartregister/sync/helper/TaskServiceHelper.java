@@ -160,8 +160,12 @@ public class TaskServiceHelper {
             String jsonPayload = new Gson().toJson(updates);
 
             String baseUrl = CoreLibrary.getInstance().context().configuration().dristhiBaseURL();
+            String endString = "/";
+            if (baseUrl.endsWith(endString)) {
+                baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
+            }
             Response<String> response = httpAgent.postWithJsonResponse(
-                    MessageFormat.format("{0}/{1}",
+                    MessageFormat.format("{0}{1}",
                             baseUrl,
                             UPDATE_STATUS_URL),
                     jsonPayload);
@@ -193,8 +197,13 @@ public class TaskServiceHelper {
         if (!tasks.isEmpty()) {
             String jsonPayload = taskGson.toJson(tasks);
             String baseUrl = CoreLibrary.getInstance().context().configuration().dristhiBaseURL();
+            String endString = "/";
+            if (baseUrl.endsWith(endString)) {
+                baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
+            }
+
             Response<String> response = httpAgent.postWithJsonResponse(
-                    MessageFormat.format("{0}/{1}",
+                    MessageFormat.format("{0}{1}",
                             baseUrl,
                             ADD_TASK_URL),
                     jsonPayload);

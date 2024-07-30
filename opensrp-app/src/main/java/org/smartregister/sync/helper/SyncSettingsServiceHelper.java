@@ -101,7 +101,7 @@ public class SyncSettingsServiceHelper {
             baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf(endString));
         }
 
-        String url = MessageFormat.format("{0}/{1}", baseUrl, SettingsSyncIntentService.SETTINGS_URL);
+        String url = MessageFormat.format("{0}{1}", baseUrl, SettingsSyncIntentService.SETTINGS_URL);
         Timber.i("URL: %s", url);
 
         if (httpAgent == null) {

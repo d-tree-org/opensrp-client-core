@@ -234,7 +234,7 @@ public class SyncIntentService extends BaseSyncIntentService {
             }
             String jsonPayload = request.toString();
             Response<String> response = httpAgent.post(
-                    MessageFormat.format("{0}/{1}",
+                    MessageFormat.format("{0}{1}",
                             baseUrl,
                             ADD_URL),
                     jsonPayload);
@@ -242,6 +242,7 @@ public class SyncIntentService extends BaseSyncIntentService {
                 Timber.e("Events sync failed.");
                 return;
             }
+            // To Do handle markEventAsSynced when there is a failure in the server but returns a payload
             db.markEventsAsSynced(pendingEvents);
             Timber.i("Events synced successfully.");
         }
