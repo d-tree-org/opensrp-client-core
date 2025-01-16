@@ -2,6 +2,7 @@ package org.smartregister.view.activity;
 
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BaseTransientBottomBar;
@@ -24,6 +25,7 @@ import org.smartregister.R;
 import org.smartregister.broadcastreceivers.OpenSRPClientBroadCastReceiver;
 import org.smartregister.event.Listener;
 import org.smartregister.receiver.P2pProcessingStatusBroadcastReceiver;
+import org.smartregister.receiver.SyncStatusBroadcastReceiver;
 import org.smartregister.service.ZiggyService;
 import org.smartregister.util.Utils;
 import org.smartregister.view.controller.ANMController;
@@ -106,9 +108,13 @@ public abstract class SecuredActivity extends MultiLanguageActivity implements P
             }
 
             // Register listener to remove the SnackBar
-            LocalBroadcastManager.getInstance(this)
-                    .registerReceiver(p2pProcessingStatusBroadcastReceiver
-                            , new IntentFilter(AllConstants.PeerToPeer.PROCESSING_ACTION));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                registerReceiver(p2pProcessingStatusBroadcastReceiver,
+                        new IntentFilter(AllConstants.PeerToPeer.PROCESSING_ACTION), android.content.Context.RECEIVER_EXPORTED);
+            }else {
+                registerReceiver(p2pProcessingStatusBroadcastReceiver,
+                        new IntentFilter(AllConstants.PeerToPeer.PROCESSING_ACTION), android.content.Context.RECEIVER_NOT_EXPORTED);
+            }
 
             if (CoreLibrary.getInstance().isPeerToPeerProcessing()) {
                 showProcessingInProgressBottomSnackbar(this);
@@ -244,8 +250,14 @@ public abstract class SecuredActivity extends MultiLanguageActivity implements P
         opensrpClientIntentFilter.addAction(Intent.ACTION_DATE_CHANGED);
 
         openSRPClientBroadCastReceiver = new OpenSRPClientBroadCastReceiver(this);
+
         // Registers the OpenSRPClientBroadCastReceiver and its intent filters
-        registerReceiver(openSRPClientBroadCastReceiver, opensrpClientIntentFilter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(openSRPClientBroadCastReceiver, opensrpClientIntentFilter, android.content.Context.RECEIVER_EXPORTED);
+        }else {
+            registerReceiver(openSRPClientBroadCastReceiver, opensrpClientIntentFilter, android.content.Context.RECEIVER_NOT_EXPORTED);
+        }
+
     }
 
     public void showToast(String message) {

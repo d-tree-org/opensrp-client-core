@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.RequiresApi;
 
 import org.joda.time.DateTime;
 import org.smartregister.domain.FetchStatus;
@@ -36,14 +38,21 @@ public class SyncStatusBroadcastReceiver extends BroadcastReceiver {
         syncStatusListeners = new ArrayList<>();
     }
 
+        @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
         public static void init(Context context) {
         if (singleton != null) {
             destroy(context);
         }
 
         singleton = new SyncStatusBroadcastReceiver();
-        context.registerReceiver(singleton,
-                new IntentFilter(SyncStatusBroadcastReceiver.ACTION_SYNC_STATUS));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.registerReceiver(singleton,
+                    new IntentFilter(SyncStatusBroadcastReceiver.ACTION_SYNC_STATUS), Context.RECEIVER_EXPORTED);
+        }else {
+            context.registerReceiver(singleton,
+                    new IntentFilter(SyncStatusBroadcastReceiver.ACTION_SYNC_STATUS), Context.RECEIVER_NOT_EXPORTED);
+        }
     }
 
     public static void destroy(Context context) {
